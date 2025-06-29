@@ -1,0 +1,31 @@
+### Kullanıcı Kayıt
+POST https://localhost:7000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456",
+  "email": "test@example.com",
+  "displayName": "Test User",
+  "language": "tr"
+}
+
+### Kullanıcı Giriş
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### Mevcut Kullanıcı Bilgilerini Al (JWT Token gerekli)
+GET https://localhost:7000/api/auth/me
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Kullanıcı Profil Bilgilerini Al (JWT Token gerekli)
+GET https://localhost:7000/api/auth/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Health Check
+GET https://localhost:7000/ 

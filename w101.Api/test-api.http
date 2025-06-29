@@ -1,0 +1,395 @@
+### Kullanıcı Kayıt
+POST https://localhost:7000/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456",
+  "email": "test@example.com",
+  "displayName": "Test User",
+  "language": "tr"
+}
+
+### Kullanıcı Giriş
+POST https://localhost:7000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### Mevcut Kullanıcı Bilgilerini Al (JWT Token gerekli)
+GET https://localhost:7000/api/auth/me
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Register Test
+POST http://localhost:5039/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser3",
+  "password": "123456",
+  "email": "test3@test.com",
+  "displayName": "Test User 3",
+  "language": "tr"
+}
+
+### Login Test (JWT Token almak için)
+POST http://localhost:5039/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### Get Profile (JWT gerekli)
+GET http://localhost:5039/api/profile
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Update Profile (JWT gerekli)
+PUT http://localhost:5039/api/profile
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "displayName": "Güncellenmiş Kullanıcı Adı",
+  "avatarUrl": "https://example.com/new-avatar.jpg"
+}
+
+### =============================================================
+### LOBBY & TABLE API'LERİ
+### =============================================================
+
+### Get All Lobbies
+GET http://localhost:5039/api/lobby
+
+### Join Lobby (JWT gerekli)
+POST http://localhost:5039/api/lobby/join
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "lobbyId": 1
+}
+
+### Get Tables in Lobby
+GET http://localhost:5039/api/table/lobby/1
+
+### Create Table (JWT gerekli)
+POST http://localhost:5039/api/table/create
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "lobbyId": 1,
+  "name": "Test Masası",
+  "minBet": 10,
+  "maxBet": 100
+}
+
+### Join Table (JWT gerekli)
+POST http://localhost:5039/api/table/join
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "tableId": 1,
+  "diamondBet": 25
+}
+
+### =============================================================
+### MATCH API'LERİ (Oyun Başlat / Maç)
+### =============================================================
+
+### Start Match (JWT gerekli)
+POST http://localhost:5039/api/match/start
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "tableId": 1
+}
+
+### Finish Match (JWT gerekli)
+POST http://localhost:5039/api/match/finish
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "matchId": 1,
+  "winnerUserId": 7,
+  "playerResults": [
+    {
+      "userId": 7,
+      "diamondChange": 150,
+      "position": 1
+    },
+    {
+      "userId": 8,
+      "diamondChange": -50,
+      "position": 2
+    },
+    {
+      "userId": 9,
+      "diamondChange": -50,
+      "position": 3
+    },
+    {
+      "userId": 10,
+      "diamondChange": -50,
+      "position": 4
+    }
+  ]
+}
+
+### Get Match History (JWT gerekli)
+GET http://localhost:5039/api/match/history
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Test - Yeni Login (Fresh Token için)
+POST http://localhost:5039/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### W101 Kelime Oyunu API Test Dosyası
+
+@baseUrl = http://localhost:5039
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1laWQiOiIxIiwidW5pcXVlX25hbWUiOiJ0ZXN0dXNlciIsIm5iZiI6MTczNTA5MTAzNSwiZXhwIjoxNzM1Njk1ODM1LCJpYXQiOjE3MzUwOTEwMzV9.EsaOSUqV0xGOWJ5SXjO5J8I-6TJTnHBFPx-jP8q8l7o
+
+### 1. Kullanıcı Kayıt
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "email": "test@example.com",
+  "password": "123456"
+}
+
+### 2. Kullanıcı Giriş
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "testuser",
+  "password": "123456"
+}
+
+### 3. Profil Bilgisi Getir
+GET {{baseUrl}}/api/profile/me
+Authorization: Bearer {{token}}
+
+### 4. Profil Güncelle
+PUT {{baseUrl}}/api/profile/update
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "displayName": "Test Kullanıcı",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "firstName": "Test",
+  "lastName": "Kullanıcı"
+}
+
+### 5. Mağaza Ürünlerini Listele
+GET {{baseUrl}}/api/store/items
+
+### 6. Elmas Satın Al
+POST {{baseUrl}}/api/store/buy
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "shopItemId": 1
+}
+
+### 7. Elmas İşlem Geçmişi
+GET {{baseUrl}}/api/diamonds/history
+Authorization: Bearer {{token}}
+
+### 8. Lobileri Listele
+GET {{baseUrl}}/api/lobbies
+
+### 9. Lobiye Giriş Kontrolü
+POST {{baseUrl}}/api/lobbies/join
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "lobbyId": 1
+}
+
+### 10. Lobiye Bağlı Masaları Listele
+GET {{baseUrl}}/api/lobbies/1/tables
+
+### 11. Masa Oluştur
+POST {{baseUrl}}/api/tables/create
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "lobbyId": 1,
+  "name": "Test Masası",
+  "minBet": 10,
+  "maxBet": 100
+}
+
+### 12. Masaya Katıl
+POST {{baseUrl}}/api/tables/join
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tableId": 1,
+  "bet": 50
+}
+
+### 13. Maç Başlat
+POST {{baseUrl}}/api/matches/start
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "tableId": 1
+}
+
+### 14. Maç Bitir
+POST {{baseUrl}}/api/matches/finish
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "matchId": 1,
+  "winnerUserId": 1
+}
+
+### 15. Maç Geçmişi Getir
+GET {{baseUrl}}/api/matches/history
+Authorization: Bearer {{token}}
+
+### 16. Arkadaşlık İsteği Gönder
+POST {{baseUrl}}/api/friends/request
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "targetUserId": 2
+}
+
+### 17. Arkadaşlık İsteklerini Listele
+GET {{baseUrl}}/api/friends/requests
+Authorization: Bearer {{token}}
+
+### 18. Arkadaşlık İsteğini Yanıtla
+POST {{baseUrl}}/api/friends/respond
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "requestId": 1,
+  "accept": true
+}
+
+### 19. Arkadaşları Listele
+GET {{baseUrl}}/api/friends/list
+Authorization: Bearer {{token}}
+
+### 20. Arkadaşa Mesaj Gönder
+POST {{baseUrl}}/api/messages/send
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "receiverUserId": 2,
+  "content": "Merhaba! Nasılsın?"
+}
+
+### 21. Mesaj Geçmişini Getir
+GET {{baseUrl}}/api/messages/history?friendId=2
+Authorization: Bearer {{token}}
+
+### 22. Okunmamış Mesaj Sayısı
+GET {{baseUrl}}/api/messages/unread-count
+Authorization: Bearer {{token}}
+
+### 23. Günlük Giriş Ödülü Al
+POST {{baseUrl}}/api/rewards/daily
+Authorization: Bearer {{token}}
+
+### 24. Reklam Ödülü Al
+POST {{baseUrl}}/api/rewards/ad
+Authorization: Bearer {{token}}
+
+### 25. Ödül Durumu
+GET {{baseUrl}}/api/rewards/status
+Authorization: Bearer {{token}}
+
+### 26. Kelime Listesi (Türkçe)
+GET {{baseUrl}}/api/words?lang=tr
+
+### 27. Rastgele Kelimeler
+GET {{baseUrl}}/api/words/random?lang=tr&count=10
+
+### 28. Mevcut Diller
+GET {{baseUrl}}/api/words/languages
+
+### 29. Kelime Arama
+GET {{baseUrl}}/api/words/search?query=test&lang=tr
+
+### 30. Maç Sohbetine Mesaj Gönder
+POST {{baseUrl}}/api/match-chat/send
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "chatId": 1,
+  "content": "İyi oyun herkese!"
+}
+
+### 31. Maç Sohbet Geçmişi
+GET {{baseUrl}}/api/match-chat/history?chatId=1
+Authorization: Bearer {{token}}
+
+### 32. Aktif Sohbetler
+GET {{baseUrl}}/api/match-chat/active
+Authorization: Bearer {{token}}
+
+### 33. Kullanıcı Ayarlarını Getir
+GET {{baseUrl}}/api/user-settings
+Authorization: Bearer {{token}}
+
+### 34. Kullanıcı Ayarlarını Güncelle
+PUT {{baseUrl}}/api/user-settings
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "soundEnabled": true,
+  "musicEnabled": false,
+  "notificationEnabled": true,
+  "language": "tr"
+}
+
+### 35. Dashboard Özeti
+GET {{baseUrl}}/api/dashboard/summary
+Authorization: Bearer {{token}}
+
+### 36. Son Oyunlar
+GET {{baseUrl}}/api/matches/recent
+Authorization: Bearer {{token}}
+
+### 37. Arkadaş Ara
+GET {{baseUrl}}/api/friends/search?query=test
+Authorization: Bearer {{token}}
+
+### 38. Kelime Listesi İndir (Cache)
+GET {{baseUrl}}/api/words/download?lang=tr
+
+### 39. Kelime Listesi İndir (Versiyon Kontrolü)
+GET {{baseUrl}}/api/words/download?lang=tr&version=1.0
