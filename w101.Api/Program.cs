@@ -213,14 +213,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Health check endpoint
-app.MapGet("/health", () => {
-    Console.WriteLine("Health check endpoint called");
-    return "OK";
-});
+app.MapGet("/", () => "w101 API is running!");
+app.MapGet("/health", () => "OK");
+app.MapGet("/test", () => new { message = "Test successful", timestamp = DateTime.UtcNow });
 
 app.MapControllers();
 
-Console.WriteLine("Application configured successfully, starting...");
+Console.WriteLine("Application starting...");
 
 try
 {
