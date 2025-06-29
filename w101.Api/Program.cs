@@ -213,9 +213,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Health check endpoint
-app.MapGet("/", () => "w101 API is running!");
-app.MapGet("/health", () => "OK");
-app.MapGet("/test", () => new { message = "Test successful", timestamp = DateTime.UtcNow });
+app.MapGet("/", () => Results.Ok(new { message = "w101 API is running!", status = "healthy" }));
+app.MapGet("/health", () => Results.Ok(new { status = "OK", timestamp = DateTime.UtcNow }));
+app.MapGet("/test", () => Results.Ok(new { message = "Test successful", timestamp = DateTime.UtcNow }));
 
 app.MapControllers();
 
