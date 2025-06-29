@@ -76,8 +76,8 @@ public class ProfileController : ControllerBase
                 return NotFound(new { message = "Kullanıcı bulunamadı" });
 
             // İstatistikleri hesapla
-            var totalMatches = user.wins + user.losses;
-            var winRate = totalMatches > 0 ? Math.Round((double)user.wins / totalMatches * 100, 2) : 0.0;
+            var totalMatches = (int)(user.wins ?? 0) + (int)(user.losses ?? 0);
+            var winRate = totalMatches > 0 ? Math.Round((double)(user.wins ?? 0) / totalMatches * 100, 2) : 0.0;
 
             var profileData = new
             {
@@ -175,7 +175,7 @@ public class ProfileController : ControllerBase
         }
     }
 
-    private async Task<object> GetUpdatedProfile(NpgsqlConnection conn, int userId)
+    private async Task<object?> GetUpdatedProfile(NpgsqlConnection conn, int userId)
     {
         var sql = @"
             SELECT 
@@ -202,8 +202,10 @@ public class ProfileController : ControllerBase
 
         var user = await conn.QueryFirstOrDefaultAsync<dynamic>(sql, new { UserId = userId });
         
-        var totalMatches = user.wins + user.losses;
-        var winRate = totalMatches > 0 ? Math.Round((double)user.wins / totalMatches * 100, 2) : 0.0;
+        if (user == null) return null;
+        
+        var totalMatches = (int)(user.wins ?? 0) + (int)(user.losses ?? 0);
+        var winRate = totalMatches > 0 ? Math.Round((double)(user.wins ?? 0) / totalMatches * 100, 2) : 0.0;
 
         return new
         {
