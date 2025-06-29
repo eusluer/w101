@@ -16,6 +16,10 @@ if (!string.IsNullOrEmpty(port))
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Configure Data Protection for production
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
+
 // JWT Authentication
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
 var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
