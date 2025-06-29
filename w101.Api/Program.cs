@@ -158,7 +158,7 @@ try
         var password = userInfo.Length > 1 ? userInfo[1] : "";
         var database = uri.AbsolutePath.TrimStart('/');
         
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Server Compatibility Mode=NoTypeLoading;Include Error Detail=true";
         Console.WriteLine("PostgreSQL URL converted to connection string");
     }
     else
