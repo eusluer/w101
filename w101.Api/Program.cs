@@ -215,11 +215,7 @@ app.UseAuthorization();
 // Health check endpoint
 app.MapGet("/health", () => {
     Console.WriteLine("Health check endpoint called");
-    return Results.Ok(new { 
-        status = "healthy", 
-        timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
-        environment = app.Environment.EnvironmentName
-    });
+    return "OK";
 });
 
 app.MapControllers();
