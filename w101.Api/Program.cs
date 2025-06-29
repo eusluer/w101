@@ -4,6 +4,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
 using w101.Api.Services;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -169,6 +170,20 @@ try
     builder.Services.AddScoped<ProfileService>();
 
     Console.WriteLine("Services registered successfully");
+
+    // Test database connection
+    try
+    {
+        using var testConnection = new NpgsqlConnection(connectionString);
+        testConnection.Open();
+        Console.WriteLine("Database connection test successful");
+        testConnection.Close();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Database connection test failed: {ex.Message}");
+        Console.WriteLine($"Connection string (masked): {connectionString.Substring(0, Math.Min(30, connectionString.Length))}...");
+    }
 }
 catch (Exception ex)
 {
@@ -208,4 +223,13 @@ app.MapControllers();
 
 Console.WriteLine("Application configured successfully, starting...");
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Application failed to start: {ex.Message}");
+    Console.WriteLine($"Stack trace: {ex.StackTrace}");
+    throw;
+}
