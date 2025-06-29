@@ -7,25 +7,17 @@ namespace w101.Api.Services
     public class ProfileService
     {
         private readonly IConfiguration _configuration;
+        private readonly string _connectionString;
 
-        public ProfileService(IConfiguration configuration)
+        public ProfileService(IConfiguration configuration, string connectionString)
         {
             _configuration = configuration;
+            _connectionString = connectionString;
         }
 
         private string GetConnectionString()
         {
-            var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-            if (!string.IsNullOrEmpty(databaseUrl))
-            {
-                // Convert PostgreSQL URI to Npgsql connection string
-                var uri = new Uri(databaseUrl);
-                var userInfo = uri.UserInfo.Split(':');
-                var username = userInfo[0]; // Use the full username from URI
-                return $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.Substring(1)};Username={username};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
-            }
-            
-            return _configuration.GetConnectionString("DefaultConnection")!;
+            return _connectionString;
         }
 
         public async Task<ProfileResponse?> GetProfileAsync(int userId)

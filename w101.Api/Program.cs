@@ -93,12 +93,25 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database connection string
-var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL") ?? 
-                      builder.Configuration.GetConnectionString("DefaultConnection");
+// Database connection string - PostgreSQL URL formatını parse et
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? 
+                  builder.Configuration.GetConnectionString("DefaultConnection");
+
+string connectionString;
+if (databaseUrl?.StartsWith("postgresql://") == true)
+{
+    // PostgreSQL URL formatını Npgsql connection string formatına çevir
+    var uri = new Uri(databaseUrl);
+    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
+}
+else
+{
+    connectionString = databaseUrl ?? throw new InvalidOperationException("Database connection string not configured");
+}
 
 // Register services
 builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+builder.Services.AddSingleton(connectionString);
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ProfileService>();

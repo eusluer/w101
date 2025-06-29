@@ -9,26 +9,18 @@ namespace w101.Api.Services
     {
         private readonly IConfiguration _configuration;
         private readonly JwtService _jwtService;
+        private readonly string _connectionString;
 
-        public AuthService(IConfiguration configuration, JwtService jwtService)
+        public AuthService(IConfiguration configuration, JwtService jwtService, string connectionString)
         {
             _configuration = configuration;
             _jwtService = jwtService;
+            _connectionString = connectionString;
         }
 
         private string GetConnectionString()
         {
-            var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
-            if (!string.IsNullOrEmpty(databaseUrl))
-            {
-                // Convert PostgreSQL URI to Npgsql connection string
-                var uri = new Uri(databaseUrl);
-                var userInfo = uri.UserInfo.Split(':');
-                var username = userInfo[0]; // Use the full username from URI
-                return $"Host={uri.Host};Port={uri.Port};Database={uri.LocalPath.Substring(1)};Username={username};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
-            }
-            
-            return _configuration.GetConnectionString("DefaultConnection")!;
+            return _connectionString;
         }
 
         public async Task<AuthResponse?> RegisterAsync(RegisterRequest request)
