@@ -7,8 +7,8 @@
   "deploy": {
     "startCommand": "dotnet w101.Api.dll",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 300,
+    "healthcheckTimeout": 600,
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
+    "restartPolicyMaxRetries": 3
   }
 } 
