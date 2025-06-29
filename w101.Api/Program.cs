@@ -181,8 +181,9 @@ try
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database connection test failed: {ex.Message}");
+        Console.WriteLine($"WARNING: Database connection test failed: {ex.Message}");
         Console.WriteLine($"Connection string (masked): {connectionString.Substring(0, Math.Min(30, connectionString.Length))}...");
+        Console.WriteLine("Application will continue without database connection - please fix database issue");
     }
 }
 catch (Exception ex)
@@ -216,7 +217,11 @@ app.UseAuthorization();
 // Health check endpoint
 app.MapGet("/health", () => {
     Console.WriteLine("Health check endpoint called");
-    return "OK";
+    return Results.Ok(new { 
+        status = "healthy", 
+        timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss UTC"),
+        environment = app.Environment.EnvironmentName
+    });
 });
 
 app.MapControllers();
