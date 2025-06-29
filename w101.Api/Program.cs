@@ -7,39 +7,80 @@ using w101.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Logging configuration
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
 // Railway PORT environment variable'ı için (sadece production'da)
 var port = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrEmpty(port))
 {
+    Console.WriteLine($"Using PORT from environment: {port}");
     builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+}
+else
+{
+    Console.WriteLine("No PORT environment variable found, using default");
 }
 
 // Add services to the container.
 builder.Services.AddControllers();
 
 // Configure Data Protection for production
-builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
+try
+{
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo("/tmp/dataprotection-keys"));
+    Console.WriteLine("Data protection configured successfully");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Data protection configuration failed: {ex.Message}");
+}
 
-// JWT Authentication
-var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? builder.Configuration["Jwt:Secret"] ?? throw new InvalidOperationException("JWT Secret not configured");
-var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured");
-var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT Audience not configured");
+// JWT Authentication with error handling
+try
+{
+    var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET") ?? builder.Configuration["Jwt:Secret"];
+    var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? builder.Configuration["Jwt:Issuer"];
+    var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? builder.Configuration["Jwt:Audience"];
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    if (string.IsNullOrEmpty(jwtSecret))
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        throw new InvalidOperationException("JWT Secret not configured");
+    }
+    if (string.IsNullOrEmpty(jwtIssuer))
+    {
+        throw new InvalidOperationException("JWT Issuer not configured");
+    }
+    if (string.IsNullOrEmpty(jwtAudience))
+    {
+        throw new InvalidOperationException("JWT Audience not configured");
+    }
+
+    Console.WriteLine($"JWT configured - Issuer: {jwtIssuer}, Audience: {jwtAudience}");
+
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
-        };
-    });
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = jwtIssuer,
+                ValidAudience = jwtAudience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+            };
+        });
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"JWT configuration failed: {ex.Message}");
+    throw;
+}
 
 builder.Services.AddAuthorization();
 
@@ -94,40 +135,60 @@ builder.Services.AddCors(options =>
 });
 
 // Database connection string - PostgreSQL URL formatını parse et
-var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? 
-                  builder.Configuration.GetConnectionString("DefaultConnection");
-
-string connectionString;
-if (databaseUrl?.StartsWith("postgresql://") == true)
+try
 {
-    // PostgreSQL URL formatını Npgsql connection string formatına çevir
-    var uri = new Uri(databaseUrl);
-    connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
-}
-else
-{
-    connectionString = databaseUrl ?? throw new InvalidOperationException("Database connection string not configured");
-}
+    var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL") ?? 
+                      builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Register services
-builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
-builder.Services.AddSingleton(connectionString);
-builder.Services.AddScoped<JwtService>();
-builder.Services.AddScoped<AuthService>();
-builder.Services.AddScoped<ProfileService>();
+    if (string.IsNullOrEmpty(databaseUrl))
+    {
+        throw new InvalidOperationException("Database connection string not configured");
+    }
+
+    Console.WriteLine($"Database URL found: {databaseUrl.Substring(0, Math.Min(50, databaseUrl.Length))}...");
+
+    string connectionString;
+    if (databaseUrl.StartsWith("postgresql://"))
+    {
+        // PostgreSQL URL formatını Npgsql connection string formatına çevir
+        var uri = new Uri(databaseUrl);
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={uri.UserInfo.Split(':')[0]};Password={uri.UserInfo.Split(':')[1]};SSL Mode=Require;Trust Server Certificate=true";
+        Console.WriteLine("PostgreSQL URL converted to connection string");
+    }
+    else
+    {
+        connectionString = databaseUrl;
+        Console.WriteLine("Using direct connection string");
+    }
+
+    // Register services
+    builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+    builder.Services.AddSingleton(connectionString);
+    builder.Services.AddScoped<JwtService>();
+    builder.Services.AddScoped<AuthService>();
+    builder.Services.AddScoped<ProfileService>();
+
+    Console.WriteLine("Services registered successfully");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Database configuration failed: {ex.Message}");
+    throw;
+}
 
 var app = builder.Build();
 
+Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
+
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger in all environments for API testing
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "w101 API v1");
-        c.DisplayRequestDuration();
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "w101 API v1");
+    c.DisplayRequestDuration();
+});
+Console.WriteLine($"Swagger configured for {app.Environment.EnvironmentName}");
 
 // Railway'de HTTPS redirect genellikle gerekli değil
 // app.UseHttpsRedirection();
@@ -138,8 +199,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Health check endpoint
-app.MapGet("/health", () => "OK");
+app.MapGet("/health", () => {
+    Console.WriteLine("Health check endpoint called");
+    return "OK";
+});
 
 app.MapControllers();
+
+Console.WriteLine("Application configured successfully, starting...");
 
 app.Run();
