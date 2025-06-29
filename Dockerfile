@@ -29,7 +29,10 @@ COPY --from=build /app/out .
 # Create directory for data protection keys
 RUN mkdir -p /tmp/dataprotection-keys
 
-# Expose the port (Railway will set the PORT environment variable)
+# Set environment variable for ASP.NET Core
+ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+
+# Expose the port
 EXPOSE 8080
 
 # Set the entry point
