@@ -13,17 +13,10 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
-// Railway PORT environment variable'ı için (sadece production'da)
-var port = Environment.GetEnvironmentVariable("PORT");
-if (!string.IsNullOrEmpty(port))
-{
-    Console.WriteLine($"Using PORT from environment: {port}");
-    builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-}
-else
-{
-    Console.WriteLine("No PORT environment variable found, using default");
-}
+// Railway PORT environment variable'ı için
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+Console.WriteLine($"Using PORT: {port}");
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
 // Add services to the container.
 builder.Services.AddControllers();
