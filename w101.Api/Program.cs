@@ -14,7 +14,7 @@ builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 // Railway PORT environment variable'ı için
-var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 Console.WriteLine($"Using PORT: {port}");
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 

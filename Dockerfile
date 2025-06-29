@@ -30,10 +30,10 @@ COPY --from=build /app/out .
 RUN mkdir -p /tmp/dataprotection-keys
 
 # Set environment variable for ASP.NET Core
-ENV ASPNETCORE_URLS=http://0.0.0.0:8080
+ENV ASPNETCORE_URLS=http://0.0.0.0:3000
 
 # Expose the port
-EXPOSE 8080
+EXPOSE 3000
 
 # Set the entry point
 ENTRYPOINT ["dotnet", "w101.Api.dll"] 
