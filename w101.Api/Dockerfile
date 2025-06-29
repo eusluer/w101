@@ -1,22 +1,30 @@
-﻿FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
-USER $APP_UID
+﻿# Use the official .NET 8 SDK image
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+
+# Set the working directory
 WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
 
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
-ARG BUILD_CONFIGURATION=Release
-WORKDIR /src
-COPY ["w101.Api.csproj", "."]
-RUN dotnet restore "w101.Api.csproj"
-COPY . .
-RUN dotnet build "w101.Api.csproj" -c $BUILD_CONFIGURATION -o /app/build
+# Copy the project file and restore dependencies
+COPY *.csproj ./
+RUN dotnet restore
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "w101.Api.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+# Copy the entire source code
+COPY . ./
 
-FROM base AS final
+# Build the application
+RUN dotnet publish -c Release -o out
+
+# Use the official .NET 8 runtime image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+
+# Set the working directory
 WORKDIR /app
-COPY --from=publish /app/publish .
+
+# Copy the published application
+COPY --from=build /app/out .
+
+# Expose the port (Railway will set the PORT environment variable)
+EXPOSE $PORT
+
+# Set the entry point
 ENTRYPOINT ["dotnet", "w101.Api.dll"]
