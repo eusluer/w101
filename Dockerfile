@@ -9,7 +9,7 @@ COPY w101.Api.sln ./
 COPY w101.Api/w101.Api.csproj ./w101.Api/
 
 # Restore dependencies
-RUN dotnet restore w101.Api/w101.Api.csproj
+RUN dotnet restore w101.Api.sln
 
 # Copy the entire source code
 COPY . ./
@@ -26,8 +26,11 @@ WORKDIR /app
 # Copy the published application
 COPY --from=build /app/out .
 
+# Create directory for data protection keys
+RUN mkdir -p /tmp/dataprotection-keys
+
 # Expose the port (Railway will set the PORT environment variable)
-EXPOSE $PORT
+EXPOSE 8080
 
 # Set the entry point
 ENTRYPOINT ["dotnet", "w101.Api.dll"] 
