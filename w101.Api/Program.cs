@@ -221,6 +221,16 @@ app.MapControllers();
 
 Console.WriteLine("Application starting...");
 
+// Railway için heartbeat
+Task.Run(async () =>
+{
+    while (true)
+    {
+        await Task.Delay(30000); // 30 saniye
+        Console.WriteLine($"Heartbeat: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC - Application is running");
+    }
+});
+
 try
 {
     app.Run();
