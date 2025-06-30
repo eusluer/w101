@@ -8,15 +8,35 @@ using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Logging configuration
+// Logging configuration - Production'da da bilgi görebilmek için
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
-builder.Logging.SetMinimumLevel(LogLevel.Information);
+if (builder.Environment.IsProduction())
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Information);
+}
+else
+{
+    builder.Logging.SetMinimumLevel(LogLevel.Debug);
+}
 
 // Railway PORT environment variable'ı için
 var port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 Console.WriteLine($"Using PORT: {port}");
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+
+// HTTP timeout ayarları
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+{
+    options.SerializerOptions.PropertyNamingPolicy = null;
+});
+
+// Kestrel server options - timeout ayarları
+builder.Services.Configure<Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerOptions>(options =>
+{
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(30);
+    options.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(120);
+});
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -66,7 +86,23 @@ try
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = jwtIssuer,
                 ValidAudience = jwtAudience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                ClockSkew = TimeSpan.FromMinutes(5)
+            };
+            
+            // JWT authentication timeout ayarları
+            options.Events = new JwtBearerEvents
+            {
+                OnAuthenticationFailed = context =>
+                {
+                    Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
+                    return Task.CompletedTask;
+                },
+                OnTokenValidated = context =>
+                {
+                    Console.WriteLine($"JWT Token validated successfully for user");
+                    return Task.CompletedTask;
+                }
             };
         });
 }
@@ -151,13 +187,22 @@ try
         var password = userInfo.Length > 1 ? userInfo[1] : "";
         var database = uri.AbsolutePath.TrimStart('/');
         
-        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Server Compatibility Mode=NoTypeLoading;Include Error Detail=true";
-        Console.WriteLine("PostgreSQL URL converted to connection string");
+        // Timeout ve connection pool ayarları ekle
+        connectionString = $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Server Compatibility Mode=NoTypeLoading;Include Error Detail=true;Timeout=30;Command Timeout=30;Connection Idle Lifetime=300;Maximum Pool Size=20;Minimum Pool Size=5;Connection Pruning Interval=10;Pooling=true";
+        Console.WriteLine("PostgreSQL URL converted to connection string with optimization");
     }
     else
     {
-        connectionString = databaseUrl;
-        Console.WriteLine("Using direct connection string");
+        // Mevcut connection string'e timeout ayarları ekle
+        if (!databaseUrl.Contains("Timeout="))
+        {
+            connectionString = databaseUrl + ";Timeout=30;Command Timeout=30;Connection Idle Lifetime=300;Maximum Pool Size=20;Minimum Pool Size=5;Connection Pruning Interval=10;Pooling=true";
+        }
+        else
+        {
+            connectionString = databaseUrl;
+        }
+        Console.WriteLine("Using direct connection string with optimization");
     }
 
     // Register services
@@ -169,19 +214,39 @@ try
 
     Console.WriteLine("Services registered successfully");
 
-    // Test database connection
-    try
+    // Test database connection with retry logic
+    var maxRetries = 3;
+    var retryDelay = TimeSpan.FromSeconds(2);
+    
+    for (int i = 0; i < maxRetries; i++)
     {
-        using var testConnection = new NpgsqlConnection(connectionString);
-        testConnection.Open();
-        Console.WriteLine("Database connection test successful");
-        testConnection.Close();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"WARNING: Database connection test failed: {ex.Message}");
-        Console.WriteLine($"Connection string (masked): {connectionString.Substring(0, Math.Min(30, connectionString.Length))}...");
-        Console.WriteLine("Application will continue without database connection - please fix database issue");
+        try
+        {
+            using var testConnection = new NpgsqlConnection(connectionString);
+            await testConnection.OpenAsync();
+            
+            // Test simple query
+            using var command = new NpgsqlCommand("SELECT 1", testConnection);
+            command.CommandTimeout = 10; // 10 saniye timeout
+            await command.ExecuteScalarAsync();
+            
+            Console.WriteLine($"Database connection test successful (attempt {i + 1})");
+            await testConnection.CloseAsync();
+            break;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Database connection test failed (attempt {i + 1}): {ex.Message}");
+            if (i == maxRetries - 1)
+            {
+                Console.WriteLine($"Connection string (masked): {connectionString.Substring(0, Math.Min(30, connectionString.Length))}...");
+                Console.WriteLine("WARNING: All database connection attempts failed - application will continue but may have issues");
+            }
+            else
+            {
+                await Task.Delay(retryDelay);
+            }
+        }
     }
 }
 catch (Exception ex)
@@ -201,6 +266,7 @@ app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "w101 API v1");
     c.DisplayRequestDuration();
+    c.EnableTryItOutByDefault();
 });
 Console.WriteLine($"Swagger configured for {app.Environment.EnvironmentName}");
 
@@ -213,21 +279,28 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Health check endpoint
-app.MapGet("/", () => Results.Ok(new { message = "w101 API is running!", status = "healthy" }));
-app.MapGet("/health", () => Results.Ok(new { status = "OK", timestamp = DateTime.UtcNow }));
+app.MapGet("/", () => Results.Ok(new { message = "w101 API is running!", status = "healthy", timestamp = DateTime.UtcNow }));
+app.MapGet("/health", () => Results.Ok(new { status = "OK", timestamp = DateTime.UtcNow, environment = app.Environment.EnvironmentName }));
 app.MapGet("/test", () => Results.Ok(new { message = "Test successful", timestamp = DateTime.UtcNow }));
 
 app.MapControllers();
 
 Console.WriteLine("Application starting...");
 
-// Railway için heartbeat
-Task.Run(async () =>
+// Railway için heartbeat - async olarak çalıştır
+_ = Task.Run(async () =>
 {
-    while (true)
+    try
     {
-        await Task.Delay(30000); // 30 saniye
-        Console.WriteLine($"Heartbeat: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC - Application is running");
+        while (true)
+        {
+            await Task.Delay(30000); // 30 saniye
+            Console.WriteLine($"Heartbeat: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC - Application is running");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Heartbeat task failed: {ex.Message}");
     }
 });
 
